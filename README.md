@@ -5,4 +5,4 @@ It stores the data in your browser's localStorage so unless you clear the browse
 
 ## Want to try?
 
-Feel free to try it or just straight up start using it at [lil-kicks.netlify.app ](lil-kicks.netlify.app)
+Feel free to try it or just straight up start using it at [lil-kicks.netlify.app] (https://lil-kicks.netlify.app/)
