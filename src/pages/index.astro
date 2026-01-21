@@ -1,5 +1,5 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Baby Kick Counter">
@@ -10,7 +10,7 @@ import Layout from '../layouts/Layout.astro';
 
   <main class="main">
     <div class="kick-button-container">
-      <button id="kickButton" class="kick-button" aria-label="Record a kick">
+      <button id="kickButton" class="kick-button disable-dbl-tap-zoom" aria-label="Record a kick">
         <span class="kick-text">Tap</span>
       </button>
       <div id="kickFeedback" class="kick-feedback"></div>
@@ -48,6 +48,10 @@ import Layout from '../layouts/Layout.astro';
       animation: fadeInDown 0.6s ease-out;
     }
 
+    .disable-dbl-tap-zoom {
+      touch-action: manipulation;
+    }
+
     .title {
       font-size: 2.5rem;
       color: var(--text-dark);
@@ -78,7 +82,11 @@ import Layout from '../layouts/Layout.astro';
       width: 200px;
       height: 200px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--cyan) 0%, var(--cyan-light) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--cyan) 0%,
+        var(--cyan-light) 100%
+      );
       border: none;
       cursor: pointer;
       display: flex;
@@ -93,7 +101,7 @@ import Layout from '../layouts/Layout.astro';
     }
 
     .kick-button::before {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: 0;
@@ -242,7 +250,7 @@ import Layout from '../layouts/Layout.astro';
     }
 
     .day-header {
-      font-family: 'rucksack', sans-serif;
+      font-family: "rucksack", sans-serif;
       font-weight: 500;
       font-size: 1.1rem;
       color: var(--charcoal);
@@ -258,7 +266,11 @@ import Layout from '../layouts/Layout.astro';
     }
 
     .kick-item {
-      background: linear-gradient(135deg, var(--cyan-light) 0%, var(--cyan) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--cyan-light) 0%,
+        var(--cyan) 100%
+      );
       color: var(--charcoal);
       padding: 0.4rem 0.85rem;
       border-radius: 20px;
@@ -267,7 +279,8 @@ import Layout from '../layouts/Layout.astro';
       box-shadow: 0 2px 4px rgba(6, 216, 252, 0.15);
     }
 
-    .week-summary, .month-summary {
+    .week-summary,
+    .month-summary {
       display: grid;
       gap: 0.75rem;
     }
@@ -277,7 +290,11 @@ import Layout from '../layouts/Layout.astro';
       justify-content: space-between;
       align-items: center;
       padding: 1rem;
-      background: linear-gradient(90deg, rgba(6, 216, 252, 0.06) 0%, transparent 100%);
+      background: linear-gradient(
+        90deg,
+        rgba(6, 216, 252, 0.06) 0%,
+        transparent 100%
+      );
       border-radius: 12px;
       border-left: 3px solid var(--cyan);
     }
@@ -288,7 +305,7 @@ import Layout from '../layouts/Layout.astro';
     }
 
     .summary-count {
-      font-family: 'DM Serif Display', serif;
+      font-family: "DM Serif Display", serif;
       font-size: 1.5rem;
       color: var(--cyan-darker);
     }
@@ -316,7 +333,8 @@ import Layout from '../layouts/Layout.astro';
     }
 
     @keyframes kickPulse {
-      0%, 100% {
+      0%,
+      100% {
         transform: scale(1);
       }
       25% {
@@ -382,7 +400,7 @@ import Layout from '../layouts/Layout.astro';
     }
 
     // Storage key
-    const STORAGE_KEY = 'babyKicks';
+    const STORAGE_KEY = "babyKicks";
 
     // Get all kicks from localStorage
     function getKicks(): Kick[] {
@@ -402,7 +420,10 @@ import Layout from '../layouts/Layout.astro';
       kicks.push({
         timestamp: now.toISOString(),
         date: now.toLocaleDateString(),
-        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        time: now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       });
       saveKicks(kicks);
       updateStats();
@@ -412,7 +433,7 @@ import Layout from '../layouts/Layout.astro';
     // Get kicks for a specific date range
     function getKicksInRange(startDate: Date, endDate: Date): Kick[] {
       const kicks = getKicks();
-      return kicks.filter(kick => {
+      return kicks.filter((kick) => {
         const kickDate = new Date(kick.timestamp);
         return kickDate >= startDate && kickDate <= endDate;
       });
@@ -421,24 +442,28 @@ import Layout from '../layouts/Layout.astro';
     // Update statistics
     function updateStats(): void {
       const now = new Date();
-      
+
       // Today
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
       const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
       const todayKicks = getKicksInRange(todayStart, todayEnd);
-      
+
       // This week (last 7 days)
       const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const weekKicks = getKicksInRange(weekStart, now);
-      
+
       // This month
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthKicks = getKicksInRange(monthStart, now);
-      
-      const todayCountEl = document.getElementById('todayCount');
-      const weekCountEl = document.getElementById('weekCount');
-      const monthCountEl = document.getElementById('monthCount');
-      
+
+      const todayCountEl = document.getElementById("todayCount");
+      const weekCountEl = document.getElementById("weekCount");
+      const monthCountEl = document.getElementById("monthCount");
+
       if (todayCountEl) todayCountEl.textContent = String(todayKicks.length);
       if (weekCountEl) weekCountEl.textContent = String(weekKicks.length);
       if (monthCountEl) monthCountEl.textContent = String(monthKicks.length);
@@ -447,7 +472,7 @@ import Layout from '../layouts/Layout.astro';
     // Group kicks by date
     function groupKicksByDate(kicks: Kick[]): KickGroup {
       const groups: KickGroup = {};
-      kicks.forEach(kick => {
+      kicks.forEach((kick) => {
         if (!groups[kick.date]) {
           groups[kick.date] = [];
         }
@@ -459,23 +484,28 @@ import Layout from '../layouts/Layout.astro';
     // Update history view
     function updateHistory(): void {
       const view = currentView;
-      const historyView = document.getElementById('historyView');
+      const historyView = document.getElementById("historyView");
       if (!historyView) return;
-      
+
       const now = new Date();
-      
-      if (view === 'day') {
+
+      if (view === "day") {
         // Show today's kicks with times
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        );
         const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
         const todayKicks = getKicksInRange(todayStart, todayEnd).reverse();
-        
+
         if (todayKicks.length === 0) {
-          historyView.innerHTML = '<div class="history-empty">No kicks recorded today yet</div>';
+          historyView.innerHTML =
+            '<div class="history-empty">No kicks recorded today yet</div>';
         } else {
-          const kicksList = todayKicks.map(kick => 
-            `<span class="kick-item">${kick.time}</span>`
-          ).join('');
+          const kicksList = todayKicks
+            .map((kick) => `<span class="kick-item">${kick.time}</span>`)
+            .join("");
           historyView.innerHTML = `
             <div class="day-group">
               <div class="day-header">Today</div>
@@ -483,85 +513,106 @@ import Layout from '../layouts/Layout.astro';
             </div>
           `;
         }
-      } else if (view === 'week') {
+      } else if (view === "week") {
         // Show last 7 days with counts
         const kicks = getKicks();
         const groups = groupKicksByDate(kicks);
         const last7Days: Array<{ date: string; count: number }> = [];
-        
+
         for (let i = 6; i >= 0; i--) {
           const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
           const dateStr = date.toLocaleDateString();
-          const dayName = i === 0 ? 'Today' : 
-                         i === 1 ? 'Yesterday' : 
-                         date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+          const dayName =
+            i === 0
+              ? "Today"
+              : i === 1
+                ? "Yesterday"
+                : date.toLocaleDateString([], {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  });
           const count = groups[dateStr] ? groups[dateStr].length : 0;
           last7Days.push({ date: dayName, count });
         }
-        
-        if (last7Days.every(day => day.count === 0)) {
-          historyView.innerHTML = '<div class="history-empty">No kicks recorded this week</div>';
+
+        if (last7Days.every((day) => day.count === 0)) {
+          historyView.innerHTML =
+            '<div class="history-empty">No kicks recorded this week</div>';
         } else {
-          const summaryHTML = last7Days.map(day => `
+          const summaryHTML = last7Days
+            .map(
+              (day) => `
             <div class="summary-row">
               <span class="summary-date">${day.date}</span>
               <span class="summary-count">${day.count}</span>
             </div>
-          `).join('');
+          `,
+            )
+            .join("");
           historyView.innerHTML = `<div class="week-summary">${summaryHTML}</div>`;
         }
-      } else if (view === 'month') {
+      } else if (view === "month") {
         // Show current month grouped by date
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const monthKicks = getKicksInRange(monthStart, now);
         const groups = groupKicksByDate(monthKicks);
-        const sortedDates = Object.keys(groups).sort((a, b) => 
-          new Date(b).getTime() - new Date(a).getTime()
+        const sortedDates = Object.keys(groups).sort(
+          (a, b) => new Date(b).getTime() - new Date(a).getTime(),
         );
-        
+
         if (sortedDates.length === 0) {
-          historyView.innerHTML = '<div class="history-empty">No kicks recorded this month</div>';
+          historyView.innerHTML =
+            '<div class="history-empty">No kicks recorded this month</div>';
         } else {
-          const summaryHTML = sortedDates.map(date => {
-            const dateObj = new Date(groups[date][0].timestamp);
-            const dateStr = dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-            return `
+          const summaryHTML = sortedDates
+            .map((date) => {
+              const dateObj = new Date(groups[date][0].timestamp);
+              const dateStr = dateObj.toLocaleDateString([], {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              });
+              return `
               <div class="summary-row">
                 <span class="summary-date">${dateStr}</span>
                 <span class="summary-count">${groups[date].length}</span>
               </div>
             `;
-          }).join('');
+            })
+            .join("");
           historyView.innerHTML = `<div class="month-summary">${summaryHTML}</div>`;
         }
       }
     }
 
     // Handle kick button click
-    let currentView: 'day' | 'week' | 'month' = 'day';
-    
-    const kickButton = document.getElementById('kickButton');
+    let currentView: "day" | "week" | "month" = "day";
+
+    const kickButton = document.getElementById("kickButton");
     if (kickButton) {
-      kickButton.addEventListener('click', function() {
-        this.classList.add('kicked');
-        setTimeout(() => this.classList.remove('kicked'), 600);
-        
+      kickButton.addEventListener("click", function () {
+        this.classList.add("kicked");
+        setTimeout(() => this.classList.remove("kicked"), 600);
+
         addKick();
-        
+
         // Haptic feedback if available
-        if ('vibrate' in navigator) {
+        if ("vibrate" in navigator) {
           navigator.vibrate(50);
         }
       });
     }
 
     // Handle view tabs
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-      tab.addEventListener('click', function(this: HTMLElement) {
-        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
+    document.querySelectorAll(".nav-tab").forEach((tab) => {
+      tab.addEventListener("click", function (this: HTMLElement) {
+        document
+          .querySelectorAll(".nav-tab")
+          .forEach((t) => t.classList.remove("active"));
+        this.classList.add("active");
         const view = this.dataset.view;
-        if (view === 'day' || view === 'week' || view === 'month') {
+        if (view === "day" || view === "week" || view === "month") {
           currentView = view;
           updateHistory();
         }
