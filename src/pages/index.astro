@@ -258,6 +258,49 @@ import Layout from '../layouts/Layout.astro';
       box-shadow: 0 2px 8px rgba(6, 216, 252, 0.2);
     }
 
+    /* Peak Activity Styles */
+.peak-activity-header {
+  margin-bottom: 1.5rem;
+}
+
+.peak-highlight {
+  background: linear-gradient(135deg, var(--cyan-light) 0%, var(--cyan) 100%);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  margin-top: 1rem;
+  box-shadow: 0 4px 12px rgba(6, 216, 252, 0.25);
+}
+
+.peak-time {
+  font-family: 'DM Serif Display', serif;
+  font-size: 2.5rem;
+  color: var(--charcoal);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.peak-count {
+  font-size: 1.1rem;
+  color: var(--charcoal);
+  font-weight: 500;
+}
+
+.hourly-breakdown {
+  margin-top: 1.5rem;
+}
+
+.peak-row {
+  background: linear-gradient(90deg, rgba(6, 216, 252, 0.15) 0%, rgba(6, 216, 252, 0.05) 100%);
+  border-left-width: 4px;
+}
+
+.nav-button.active {
+  background: var(--cyan);
+  color: var(--charcoal);
+  box-shadow: 0 2px 8px rgba(6, 216, 252, 0.2);
+}
+
     .nav-tab:hover {
       background: rgba(6, 216, 252, 0.08);
     }
@@ -421,6 +464,10 @@ import Layout from '../layouts/Layout.astro';
   </style>
 
   <script>
+
+    import { object } from 'astro:schema';
+import { getTimeOfDayPatterns, getPeakActivityHour, formatHour } from '../lib/analytics/kick-pattern.js';
+
     // Types
     interface Kick {
       timestamp: string;
@@ -434,6 +481,11 @@ import Layout from '../layouts/Layout.astro';
 
     // Storage key
     const STORAGE_KEY = 'babyKicks';
+
+    // Track current view state
+    let currentView: 'day' | 'week' | 'month' = 'day';
+    let isPeakViewActive = false;
+
 
     // Get all kicks from localStorage
     function getKicks(): Kick[] {
@@ -457,8 +509,14 @@ import Layout from '../layouts/Layout.astro';
       });
       saveKicks(kicks);
       updateStats();
+    
+    // Update the appropriate view 
+    if (isPeakViewActive) {
+      showPeakActivity();
+    } else {
       updateHistory();
-    }
+    } 
+  }
 
     // Get kicks for a specific date range
     function getKicksInRange(startDate: Date, endDate: Date): Kick[] {
@@ -486,6 +544,7 @@ import Layout from '../layouts/Layout.astro';
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthKicks = getKicksInRange(monthStart, now);
       
+      // Update DOM elements
       const todayCountEl = document.getElementById('todayCount');
       const weekCountEl = document.getElementById('weekCount');
       const monthCountEl = document.getElementById('monthCount');
@@ -506,6 +565,85 @@ import Layout from '../layouts/Layout.astro';
       });
       return groups;
     }
+
+
+    /**
+     * Display peak activity analysis in the history view window
+     * Shows the hour of day with most kicks and time-of-day patterns based on current timeframe (day/week/month)
+     */
+
+     function showPeakActivity(): void {
+      const historyView = document.getElementById('historyView');
+      if (!historyView) return;
+
+      const now = new Date();
+      let kicks: Kick[];
+      let timeframeLabel: string;
+
+      // Get kicks based on current view
+      if (currentView === 'day') {
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+        kicks = getKicksInRange(todayStart, todayEnd);
+        timeframeLabel = 'Today';
+      } else if (currentView === 'week') {
+        const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        kicks = getKicksInRange(weekStart, now);
+        timeframeLabel = 'This Week';
+      } else {
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        kicks = getKicksInRange(monthStart, now);
+        timeframeLabel = 'This Month';
+     } 
+     // Check if there any kicks recorded
+     if (kicks.length === 0) {
+       historyView.innerHTML = `<div class="history-empty">No kicks recorded ${timeframeLabel.toLowerCase()}</div>`;
+       return;
+     }
+
+     // Get peak activity hour 
+     const peakHour = getPeakActivityHour(kicks);
+    const peakHourFormatted = formatHour(peakHour.hour);
+
+    // Get time-of-day patterns
+    const patterns = getTimeOfDayPatterns(kicks);
+
+    // Sort hour for display
+    const sortedHours = object.keys(patterns)
+    .sort(([a], [b]) => parseInt(a) - parseInt(b))
+    .filter(([_, count]) => count > 0);
+     
+    let html = `
+      <div class="peak-activity-header">
+        <h3 class="day-header">Peak Activity - ${timeframeLabel}</h3>
+        <div class="peak-highlight">
+          <div class="peak-time">${peakHourFormatted}</div>
+          <div class="peak-count">${peakHour.count} kick${peakHour.count !== 1 ? 's' : ''}</div>
+        </div>
+      </div>
+    `;
+
+     // Add hourly breakdown
+    if (sortedHours.length > 0) {
+      html += '<div class="hourly-breakdown">';
+      sortedHours.forEach(([hour, count]) => {
+        const hourNum = parseInt(hour);
+        const isPeak = hourNum === peakActivity.hour;
+        const formattedTime = formatHour(hourNum);
+        
+        html += `
+          <div class="summary-row ${isPeak ? 'peak-row' : ''}">
+            <span class="summary-date">${formattedTime}</span>
+            <span class="summary-count">${count}</span>
+          </div>
+        `;
+      });
+      html += '</div>';
+    }
+    
+    historyView.innerHTML = html;
+  }
+
 
     // Update history view
     function updateHistory(): void {
@@ -587,9 +725,6 @@ import Layout from '../layouts/Layout.astro';
         }
       }
     }
-
-    // Handle kick button click
-    let currentView: 'day' | 'week' | 'month' = 'day';
     
     const kickButton = document.getElementById('kickButton');
     if (kickButton) {
@@ -606,7 +741,7 @@ import Layout from '../layouts/Layout.astro';
       });
     }
 
-    // Handle view tabs
+    // Handle view tabs (day/week/month)
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', function(this: HTMLElement) {
         document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -618,6 +753,22 @@ import Layout from '../layouts/Layout.astro';
         }
       });
     });
+  
+    // Handle analytics buttons
+  document.querySelectorAll('.nav-button').forEach(button => {
+      button.addEventListener('click', function(this: HTMLElement) {
+        const view = this.dataset.view;
+        if (view === 'peak') {
+          showPeakActivity();
+          this.classList.add('active');
+        } else {
+          // return to normal history view
+          updateHistory();
+          this.classList.remove('active');
+        }    
+      });    
+    });
+
 
     // Initialize on page load
     updateStats();
