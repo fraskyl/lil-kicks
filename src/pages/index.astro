@@ -10,11 +10,7 @@ import Layout from "../layouts/Layout.astro";
     </header>
 
     <div class="kick-button-container">
-      <button
-        id="kickButton"
-        class="kick-button disable-dbl-tap-zoom"
-        aria-label="Record a kick"
-      >
+      <button id="kickButton" class="kick-button disable-dbl-tap-zoom" aria-label="Record a kick">
         <span class="kick-text">Tap</span>
       </button>
       <div id="kickFeedback" class="kick-feedback"></div>
@@ -71,6 +67,10 @@ import Layout from "../layouts/Layout.astro";
       margin-bottom: 2.5rem;
       padding-top: 1rem;
       animation: fadeInDown 0.6s ease-out;
+    }
+
+    .disable-dbl-tap-zoom {
+      touch-action: manipulation;
     }
 
     .title {
@@ -416,6 +416,7 @@ import Layout from "../layouts/Layout.astro";
     }
 
     .summary-count {
+      font-family: "Rucksack", sans-serif;
       font-size: 1.5rem;
       color: var(--cyan-darker);
     }
@@ -516,19 +517,8 @@ import Layout from "../layouts/Layout.astro";
       justify-content: center;
     }
 
-    .modal-content {
-      background: var(--warm-white);
-      border-radius: 1.5rem;
-      padding: 0;
-      max-width: 90%;
-      width: 400px;
-      max-height: 80vh;
-      overflow: hidden;
-      box-shadow: 0 20px 60px rgba(6, 216, 252, 0.3);
-      animation: slideUp 0.3s ease-out;
-      display: flex;
-      flex-direction: column;
-    }
+    // Storage key
+    const STORAGE_KEY = "babyKicks";
 
     .modal-header {
       display: flex;
@@ -549,29 +539,30 @@ import Layout from "../layouts/Layout.astro";
       margin-right: 1.5rem;
     }
 
-    .modal-title {
-      font-family: "rucksack", sans-serif;
-      font-weight: 600;
-      font-size: 1.25rem;
-      color: var(--charcoal);
-      margin: 0;
+    // Add a new kick
+    function addKick(): void {
+      const kicks = getKicks();
+      const now = new Date();
+      kicks.push({
+        timestamp: now.toISOString(),
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      });
+      saveKicks(kicks);
+      updateStats();
+      updateHistory();
     }
 
-    .modal-close {
-      background: none;
-      border: none;
-      font-size: 2rem;
-      color: var(--cyan-darker);
-      cursor: pointer;
-      line-height: 1;
-      padding: 0;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition: all 0.2s ease;
+    // Get kicks for a specific date range
+    function getKicksInRange(startDate: Date, endDate: Date): Kick[] {
+      const kicks = getKicks();
+      return kicks.filter((kick) => {
+        const kickDate = new Date(kick.timestamp);
+        return kickDate >= startDate && kickDate <= endDate;
+      });
     }
 
     .modal-close:hover {
@@ -698,7 +689,6 @@ import Layout from "../layouts/Layout.astro";
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthKicks = getKicksInRange(monthStart, now);
 
-      // Update DOM elements
       const todayCountEl = document.getElementById("todayCount");
       const weekCountEl = document.getElementById("weekCount");
       const monthCountEl = document.getElementById("monthCount");
@@ -708,112 +698,16 @@ import Layout from "../layouts/Layout.astro";
       if (monthCountEl) monthCountEl.textContent = String(monthKicks.length);
     }
 
-    // Wrapper to handle addKick and view updates
-    function handleAddKick(): void {
-      addKick();
-      updateStats();
-
-      // Update the appropriate view
-      if (isPeakViewActive) {
-        showPeakActivity();
-      } else {
-        updateHistory();
-      }
-    }
-
-    /**
-     * Display peak activity analysis in the history view window
-     * Shows the hour of day with most kicks and time-of-day patterns based on current timeframe (day/week/month)
-     */
-
-    function showPeakActivity(): void {
-      const historyView = document.getElementById("historyView");
-      if (!historyView) return;
-
-      const now = new Date();
-      let kicks: Kick[];
-      let timeframeLabel: string;
-
-      // Get kicks based on current view
-      if (currentView === "day") {
-        const todayStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-        );
-        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-        kicks = getKicksInRange(todayStart, todayEnd);
-        timeframeLabel = "Today";
-      } else if (currentView === "week") {
-        const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        kicks = getKicksInRange(weekStart, now);
-        timeframeLabel = "This Week";
-      } else {
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        kicks = getKicksInRange(monthStart, now);
-        timeframeLabel = "This Month";
-      }
-      // Check if there any kicks recorded
-      if (kicks.length === 0) {
-        historyView.innerHTML = `<div class="history-empty">No kicks recorded ${timeframeLabel.toLowerCase()}</div>`;
-        return;
-      }
-
-      // Get peak activity hour
-      const peakActivity = getPeakActivityHour(kicks);
-      const peakActivityFormatted = formatHour(peakActivity.hour);
-
-      // Get time-of-day patterns
-      const patterns = getTimeOfDayPatterns(kicks);
-
-      // Sort hour for display
-      const sortedHours = Object.entries(patterns)
-        .sort(([a], [b]) => parseInt(a) - parseInt(b))
-        .filter(([_, count]) => count > 0);
-
-      let html = `
-      <div class="peak-activity-header">
-        <h3 class="day-header">Peak Activity - ${timeframeLabel}</h3>
-        <div class="peak-highlight">
-          <div class="peak-time">${peakActivityFormatted}</div>
-          <div class="peak-count">${peakActivity.count} kick${peakActivity.count !== 1 ? "s" : ""}</div>
-        </div>
-      </div>
-    `;
-
-      // Add hourly breakdown
-      if (sortedHours.length > 0) {
-        html += '<div class="hourly-breakdown">';
-        sortedHours.forEach(([hour, count]) => {
-          const hourNum = parseInt(hour);
-          const isPeak = hourNum === peakActivity.hour;
-          const formattedTime = formatHour(hourNum);
-
-          html += `
-          <div class="summary-row ${isPeak ? "peak-row" : ""}" data-hour="${hourNum}">
-            <span class="summary-date">${formattedTime}</span>
-            <span class="summary-count">${count}</span>
-          </div>
-        `;
-        });
-        html += "</div>";
-
-        // Add click event listeners to open modal with detailed kick times
-        setTimeout(() => {
-          document
-            .querySelectorAll(".hourly-breakdown .summary-row")
-            .forEach((row) => {
-              row.addEventListener("click", function (this: HTMLElement) {
-                const hour = parseInt(this.dataset.hour || "0");
-                const formattedTime = formatHour(hour);
-                const hourKicks = getKicksForHour(kicks, hour);
-                openKickModal(`${formattedTime} Kicks`, hourKicks);
-              });
-            });
-        }, 0);
-      }
-
-      historyView.innerHTML = html;
+    // Group kicks by date
+    function groupKicksByDate(kicks: Kick[]): KickGroup {
+      const groups: KickGroup = {};
+      kicks.forEach((kick) => {
+        if (!groups[kick.date]) {
+          groups[kick.date] = [];
+        }
+        groups[kick.date].push(kick);
+      });
+      return groups;
     }
 
     // Update history view
@@ -952,7 +846,7 @@ import Layout from "../layouts/Layout.astro";
                 day: "numeric",
               });
               return `
-              <div class="summary-row" data-date="${date}">
+              <div class="summary-row">
                 <span class="summary-date">${dateStr}</span>
                 <span class="summary-count">${groups[date].length}</span>
               </div>
@@ -982,13 +876,15 @@ import Layout from "../layouts/Layout.astro";
       }
     }
     // Handle kick button click
+    let currentView: "day" | "week" | "month" = "day";
+
     const kickButton = document.getElementById("kickButton");
     if (kickButton) {
       kickButton.addEventListener("click", function () {
         this.classList.add("kicked");
         setTimeout(() => this.classList.remove("kicked"), 600);
 
-        handleAddKick();
+        addKick();
 
         // Haptic feedback if available
         if ("vibrate" in navigator) {
@@ -997,7 +893,7 @@ import Layout from "../layouts/Layout.astro";
       });
     }
 
-    // Handle view tabs (day/week/month)
+    // Handle view tabs
     document.querySelectorAll(".nav-tab").forEach((tab) => {
       tab.addEventListener("click", function (this: HTMLElement) {
         document
