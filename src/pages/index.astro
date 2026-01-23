@@ -3,12 +3,12 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Baby Kick Counter">
-  <header class="header">
-    <h1 class="title">Lil' Kicks</h1>
-    <p class="subtitle">Track your baby's movements</p>
-  </header>
-
   <main class="main">
+    <header class="header">
+      <h1 class="title">Lil' Kicks</h1>
+      <p class="subtitle">Track your baby's movements</p>
+    </header>
+
     <div class="kick-button-container">
       <button
         id="kickButton"
@@ -44,7 +44,7 @@ import Layout from "../layouts/Layout.astro";
       <div class="nav-button-analytics">
         <button class="nav-button" data-view="peak">Peak activity</button>
         <!-- not implemented average kicks yet -->
-       <!-- <button class="nav-button" data-view="average">Average kicks</button> --> 
+        <!-- <button class="nav-button" data-view="average">Average kicks</button> -->
       </div>
     </nav>
 
@@ -540,14 +540,13 @@ import Layout from "../layouts/Layout.astro";
         rgba(6, 216, 252, 0.05) 0%,
         transparent 100%
       );
-      
     }
 
     .modal-divider {
       height: 1px;
       background: var(--cyan-light);
       margin-left: 1.5rem;
-      margin-right: 1.5rem; 
+      margin-right: 1.5rem;
     }
 
     .modal-title {
@@ -556,7 +555,6 @@ import Layout from "../layouts/Layout.astro";
       font-size: 1.25rem;
       color: var(--charcoal);
       margin: 0;
-
     }
 
     .modal-close {
@@ -658,73 +656,26 @@ import Layout from "../layouts/Layout.astro";
     } from "../lib/analytics/kick-pattern.js";
 
     import {
+      getKicks,
+      saveKicks,
+      addKick,
+      getKicksInRange,
+      groupKicksByDate,
+    } from "../lib/storage/kicks.js";
+
+    import {
       openKickModal,
       closeKickModal,
       getKicksForHour,
-      getKicksForDate,
       initializeModalHandlers,
     } from "../lib/ui/modal.js";
 
     // Types
-    interface Kick {
-      timestamp: string;
-      date: string;
-      time: string;
-    }
-
-    interface KickGroup {
-      [date: string]: Kick[];
-    }
-
-    // Storage key
-    const STORAGE_KEY = "babyKicks";
+    import type { Kick, KickGroup } from "../lib/storage/kicks.js";
 
     // Track current view state
     let currentView: "day" | "week" | "month" = "day";
     let isPeakViewActive = false;
-
-    // Get all kicks from localStorage
-    function getKicks(): Kick[] {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
-    }
-
-    // Save kicks to localStorage
-    function saveKicks(kicks: Kick[]): void {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(kicks));
-    }
-
-    // Add a new kick
-    function addKick(): void {
-      const kicks = getKicks();
-      const now = new Date();
-      kicks.push({
-        timestamp: now.toISOString(),
-        date: now.toLocaleDateString(),
-        time: now.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      });
-      saveKicks(kicks);
-      updateStats();
-
-      // Update the appropriate view
-      if (isPeakViewActive) {
-        showPeakActivity();
-      } else {
-        updateHistory();
-      }
-    }
-
-    // Get kicks for a specific date range
-    function getKicksInRange(startDate: Date, endDate: Date): Kick[] {
-      const kicks = getKicks();
-      return kicks.filter((kick) => {
-        const kickDate = new Date(kick.timestamp);
-        return kickDate >= startDate && kickDate <= endDate;
-      });
-    }
 
     // Update statistics
     function updateStats(): void {
@@ -757,16 +708,17 @@ import Layout from "../layouts/Layout.astro";
       if (monthCountEl) monthCountEl.textContent = String(monthKicks.length);
     }
 
-    // Group kicks by date
-    function groupKicksByDate(kicks: Kick[]): KickGroup {
-      const groups: KickGroup = {};
-      kicks.forEach((kick) => {
-        if (!groups[kick.date]) {
-          groups[kick.date] = [];
-        }
-        groups[kick.date].push(kick);
-      });
-      return groups;
+    // Wrapper to handle addKick and view updates
+    function handleAddKick(): void {
+      addKick();
+      updateStats();
+
+      // Update the appropriate view
+      if (isPeakViewActive) {
+        showPeakActivity();
+      } else {
+        updateHistory();
+      }
     }
 
     /**
@@ -943,22 +895,32 @@ import Layout from "../layouts/Layout.astro";
               .querySelectorAll(".week-summary .summary-row")
               .forEach((row, index) => {
                 row.addEventListener("click", function (this: HTMLElement) {
-                  const dayName = this.querySelector(".summary-date")?.textContent || "";
+                  const dayName =
+                    this.querySelector(".summary-date")?.textContent || "";
                   let dateStr = "";
-                  
+
                   if (dayName === "Today") {
                     dateStr = now.toLocaleDateString();
                   } else if (dayName === "Yesterday") {
-                    dateStr = new Date(now.getTime() - 24*60*60*1000).toLocaleDateString();
+                    dateStr = new Date(
+                      now.getTime() - 24 * 60 * 60 * 1000,
+                    ).toLocaleDateString();
                   } else {
                     // For other days, match from last7Days array
                     const matchingDay = last7Days[index];
                     if (matchingDay) {
-                      const d = new Date(now.getTime() - (6 - (index - (dayName === "Today" ? 0 : 1))) * 24 * 60 * 60 * 1000);
+                      const d = new Date(
+                        now.getTime() -
+                          (6 - (index - (dayName === "Today" ? 0 : 1))) *
+                            24 *
+                            60 *
+                            60 *
+                            1000,
+                      );
                       dateStr = d.toLocaleDateString();
                     }
                   }
-                  
+
                   if (dateStr && kicksByDate[dateStr]) {
                     openKickModal(`${dayName} Kicks`, kicksByDate[dateStr]);
                   } else {
@@ -998,27 +960,27 @@ import Layout from "../layouts/Layout.astro";
             })
             .join("");
           historyView.innerHTML = `<div class="month-summary">${summaryHTML}</div>`;
-        
-         // Add click event listeners to summary rows
-    setTimeout(() => {
-      document.querySelectorAll('.month-summary .summary-row').forEach(row => {
-        row.addEventListener('click', function(this: HTMLElement) {
-          const dateStr = this.dataset.date || '';
-          const dayName = this.querySelector('.summary-date')?.textContent || '';
-          if (dateStr && groups[dateStr]) {
-            openKickModal(`${dayName} Kicks`, groups[dateStr]);
-          } else {
-            openKickModal(`${dayName} Kicks`, []);
-          }
-        });
-      });
-    }, 0);
-  }
-        
-        
-        
+
+          // Add click event listeners to summary rows
+          setTimeout(() => {
+            document
+              .querySelectorAll(".month-summary .summary-row")
+              .forEach((row) => {
+                row.addEventListener("click", function (this: HTMLElement) {
+                  const dateStr = this.dataset.date || "";
+                  const dayName =
+                    this.querySelector(".summary-date")?.textContent || "";
+                  if (dateStr && groups[dateStr]) {
+                    openKickModal(`${dayName} Kicks`, groups[dateStr]);
+                  } else {
+                    openKickModal(`${dayName} Kicks`, []);
+                  }
+                });
+              });
+          }, 0);
         }
       }
+    }
     // Handle kick button click
     const kickButton = document.getElementById("kickButton");
     if (kickButton) {
@@ -1026,7 +988,7 @@ import Layout from "../layouts/Layout.astro";
         this.classList.add("kicked");
         setTimeout(() => this.classList.remove("kicked"), 600);
 
-        addKick();
+        handleAddKick();
 
         // Haptic feedback if available
         if ("vibrate" in navigator) {

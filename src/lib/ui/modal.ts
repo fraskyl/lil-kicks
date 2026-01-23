@@ -70,16 +70,6 @@ export function getKicksForHour(kicks: Kick[], hour: number): Kick[] {
 }
 
 /**
- * Filters kicks to only those on a specific date
- * @param {Kick[]} kicks - All kicks to filter
- * @param {string} date - Date string to match (from kick.date)
- * @returns {Kick[]} Kicks that occurred on that date
- */
-export function getKicksForDate(kicks: Kick[], date: string): Kick[] {
-  return kicks.filter(kick => kick.date === date);
-}
-
-/**
  * Initializes modal event handlers (close button, backdrop click, escape key)
  * Should be called once when the page loads
  */
