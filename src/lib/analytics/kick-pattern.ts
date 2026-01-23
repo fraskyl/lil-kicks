@@ -1,4 +1,4 @@
-import { getKicks } from '../storage/kicks';
+import { getKicks, type Kick } from '../storage/kicks';
 
 /**
  * Maps hour strings to kick counts
@@ -24,9 +24,8 @@ export interface PeakActivity {
  * @returns {HourCount} Object with hours as keys and kick counts as values
  * 
  */
-export function getTimeOfDayPatterns(): HourCount {
+export function getTimeOfDayPatterns(kicks: Kick[]): HourCount {
   // Get kicks from the storage module
-  const kicks = getKicks();
   const hourCounts: HourCount = {};
   
   kicks.forEach(kick => {
@@ -47,8 +46,8 @@ export function getTimeOfDayPatterns(): HourCount {
  * @returns {PeakActivity} Object with hour (0-23) and count
  * 
  */
-export function getPeakActivityHour(): PeakActivity {
-  const patterns = getTimeOfDayPatterns();
+export function getPeakActivityHour(kicks: Kick[]): PeakActivity {
+  const patterns = getTimeOfDayPatterns(kicks);
   
   let maxHour = 0;
   let maxCount = 0;

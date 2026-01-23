@@ -464,9 +464,7 @@ import Layout from '../layouts/Layout.astro';
   </style>
 
   <script>
-
-    import { object } from 'astro:schema';
-import { getTimeOfDayPatterns, getPeakActivityHour, formatHour } from '../lib/analytics/kick-pattern.js';
+    import { getTimeOfDayPatterns, getPeakActivityHour, formatHour } from '../lib/analytics/kick-pattern.js';
 
     // Types
     interface Kick {
@@ -602,14 +600,14 @@ import { getTimeOfDayPatterns, getPeakActivityHour, formatHour } from '../lib/an
      }
 
      // Get peak activity hour 
-     const peakHour = getPeakActivityHour(kicks);
-    const peakHourFormatted = formatHour(peakHour.hour);
+     const peakActivity = getPeakActivityHour(kicks);
+      const peakActivityFormatted = formatHour(peakActivity.hour);
 
     // Get time-of-day patterns
     const patterns = getTimeOfDayPatterns(kicks);
 
     // Sort hour for display
-    const sortedHours = object.keys(patterns)
+    const sortedHours = Object.entries(patterns)
     .sort(([a], [b]) => parseInt(a) - parseInt(b))
     .filter(([_, count]) => count > 0);
      
@@ -617,8 +615,8 @@ import { getTimeOfDayPatterns, getPeakActivityHour, formatHour } from '../lib/an
       <div class="peak-activity-header">
         <h3 class="day-header">Peak Activity - ${timeframeLabel}</h3>
         <div class="peak-highlight">
-          <div class="peak-time">${peakHourFormatted}</div>
-          <div class="peak-count">${peakHour.count} kick${peakHour.count !== 1 ? 's' : ''}</div>
+          <div class="peak-time">${peakActivityFormatted}</div>
+          <div class="peak-count">${peakActivity.count} kick${peakActivity.count !== 1 ? 's' : ''}</div>
         </div>
       </div>
     `;
@@ -749,7 +747,12 @@ import { getTimeOfDayPatterns, getPeakActivityHour, formatHour } from '../lib/an
         const view = this.dataset.view;
         if (view === 'day' || view === 'week' || view === 'month') {
           currentView = view;
-          updateHistory();
+
+          if (isPeakViewActive) {
+            showPeakActivity();
+          } else {
+            updateHistory();
+          } 
         }
       });
     });
@@ -759,13 +762,16 @@ import { getTimeOfDayPatterns, getPeakActivityHour, formatHour } from '../lib/an
       button.addEventListener('click', function(this: HTMLElement) {
         const view = this.dataset.view;
         if (view === 'peak') {
-          showPeakActivity();
-          this.classList.add('active');
-        } else {
-          // return to normal history view
-          updateHistory();
-          this.classList.remove('active');
-        }    
+          isPeakViewActive = !isPeakViewActive;
+
+          if (isPeakViewActive) {
+            showPeakActivity();
+            this.classList.add('active');
+          } else {
+            updateHistory();
+            this.classList.remove('active');
+          }
+        } 
       });    
     });
 
