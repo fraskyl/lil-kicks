@@ -43,7 +43,8 @@ import Layout from "../layouts/Layout.astro";
       </div>
       <div class="nav-button-analytics">
         <button class="nav-button" data-view="peak">Peak activity</button>
-        <button class="nav-button" data-view="average">Average kicks</button>
+        <!-- not implemented average kicks yet -->
+       <!-- <button class="nav-button" data-view="average">Average kicks</button> --> 
       </div>
     </nav>
 
@@ -58,6 +59,7 @@ import Layout from "../layouts/Layout.astro";
             >&times;</button
           >
         </div>
+        <div class="modal-divider"></div>
         <div id="modalBody" class="modal-body"></div>
       </div>
     </div>
@@ -493,6 +495,159 @@ import Layout from "../layouts/Layout.astro";
         font-size: 1.75rem;
       }
     }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(10, 31, 40, 0.8);
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--warm-white);
+      border-radius: 1.5rem;
+      padding: 0;
+      max-width: 90%;
+      width: 400px;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(6, 216, 252, 0.3);
+      animation: slideUp 0.3s ease-out;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem;
+      background: linear-gradient(
+        135deg,
+        rgba(6, 216, 252, 0.05) 0%,
+        transparent 100%
+      );
+      
+    }
+
+    .modal-divider {
+      height: 1px;
+      background: var(--cyan-light);
+      margin-left: 1.5rem;
+      margin-right: 1.5rem; 
+    }
+
+    .modal-title {
+      font-family: "rucksack", sans-serif;
+      font-weight: 600;
+      font-size: 1.25rem;
+      color: var(--charcoal);
+      margin: 0;
+
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      color: var(--cyan-darker);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: var(--cyan-light);
+      color: var(--charcoal);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-kicks-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .modal-kick-item {
+      background: linear-gradient(
+        135deg,
+        var(--cyan-light) 0%,
+        var(--cyan) 100%
+      );
+      color: var(--charcoal);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 2px 4px rgba(6, 216, 252, 0.15);
+    }
+
+    .modal-empty {
+      text-align: center;
+      color: var(--cyan-darker);
+      padding: 2rem 1rem;
+      font-style: italic;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .modal-content {
+        max-width: 95%;
+        max-height: 85vh;
+      }
+
+      .modal-header {
+        padding: 1.25rem;
+      }
+
+      .modal-body {
+        padding: 1.25rem;
+      }
+    }
   </style>
 
   <script>
@@ -501,6 +656,14 @@ import Layout from "../layouts/Layout.astro";
       getPeakActivityHour,
       formatHour,
     } from "../lib/analytics/kick-pattern.js";
+
+    import {
+      openKickModal,
+      closeKickModal,
+      getKicksForHour,
+      getKicksForDate,
+      initializeModalHandlers,
+    } from "../lib/ui/modal.js";
 
     // Types
     interface Kick {
@@ -675,13 +838,27 @@ import Layout from "../layouts/Layout.astro";
           const formattedTime = formatHour(hourNum);
 
           html += `
-          <div class="summary-row ${isPeak ? "peak-row" : ""}">
+          <div class="summary-row ${isPeak ? "peak-row" : ""}" data-hour="${hourNum}">
             <span class="summary-date">${formattedTime}</span>
             <span class="summary-count">${count}</span>
           </div>
         `;
         });
         html += "</div>";
+
+        // Add click event listeners to open modal with detailed kick times
+        setTimeout(() => {
+          document
+            .querySelectorAll(".hourly-breakdown .summary-row")
+            .forEach((row) => {
+              row.addEventListener("click", function (this: HTMLElement) {
+                const hour = parseInt(this.dataset.hour || "0");
+                const formattedTime = formatHour(hour);
+                const hourKicks = getKicksForHour(kicks, hour);
+                openKickModal(`${formattedTime} Kicks`, hourKicks);
+              });
+            });
+        }, 0);
       }
 
       historyView.innerHTML = html;
@@ -757,6 +934,39 @@ import Layout from "../layouts/Layout.astro";
             )
             .join("");
           historyView.innerHTML = `<div class="week-summary">${summaryHTML}</div>`;
+
+          // Add click event listeners to summary rows
+          setTimeout(() => {
+            const allKicks = getKicks();
+            const kicksByDate = groupKicksByDate(allKicks);
+            document
+              .querySelectorAll(".week-summary .summary-row")
+              .forEach((row, index) => {
+                row.addEventListener("click", function (this: HTMLElement) {
+                  const dayName = this.querySelector(".summary-date")?.textContent || "";
+                  let dateStr = "";
+                  
+                  if (dayName === "Today") {
+                    dateStr = now.toLocaleDateString();
+                  } else if (dayName === "Yesterday") {
+                    dateStr = new Date(now.getTime() - 24*60*60*1000).toLocaleDateString();
+                  } else {
+                    // For other days, match from last7Days array
+                    const matchingDay = last7Days[index];
+                    if (matchingDay) {
+                      const d = new Date(now.getTime() - (6 - (index - (dayName === "Today" ? 0 : 1))) * 24 * 60 * 60 * 1000);
+                      dateStr = d.toLocaleDateString();
+                    }
+                  }
+                  
+                  if (dateStr && kicksByDate[dateStr]) {
+                    openKickModal(`${dayName} Kicks`, kicksByDate[dateStr]);
+                  } else {
+                    openKickModal(`${dayName} Kicks`, []);
+                  }
+                });
+              });
+          }, 0);
         }
       } else if (view === "month") {
         // Show current month grouped by date
@@ -780,7 +990,7 @@ import Layout from "../layouts/Layout.astro";
                 day: "numeric",
               });
               return `
-              <div class="summary-row">
+              <div class="summary-row" data-date="${date}">
                 <span class="summary-date">${dateStr}</span>
                 <span class="summary-count">${groups[date].length}</span>
               </div>
@@ -788,10 +998,28 @@ import Layout from "../layouts/Layout.astro";
             })
             .join("");
           historyView.innerHTML = `<div class="month-summary">${summaryHTML}</div>`;
+        
+         // Add click event listeners to summary rows
+    setTimeout(() => {
+      document.querySelectorAll('.month-summary .summary-row').forEach(row => {
+        row.addEventListener('click', function(this: HTMLElement) {
+          const dateStr = this.dataset.date || '';
+          const dayName = this.querySelector('.summary-date')?.textContent || '';
+          if (dateStr && groups[dateStr]) {
+            openKickModal(`${dayName} Kicks`, groups[dateStr]);
+          } else {
+            openKickModal(`${dayName} Kicks`, []);
+          }
+        });
+      });
+    }, 0);
+  }
+        
+        
+        
         }
       }
-    }
-
+    // Handle kick button click
     const kickButton = document.getElementById("kickButton");
     if (kickButton) {
       kickButton.addEventListener("click", function () {
@@ -862,5 +1090,6 @@ import Layout from "../layouts/Layout.astro";
     // Initialize on page load
     updateStats();
     updateHistory();
+    initializeModalHandlers();
   </script>
 </Layout>

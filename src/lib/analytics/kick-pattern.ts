@@ -66,11 +66,11 @@ export function getPeakActivityHour(kicks: Kick[]): PeakActivity {
  * Formats an hour (0-23) into 12-hour format with AM/PM
  * 
  * @param {number} hour - Hour in 24-hour format (0-23)
- * @returns {string} Formatted time string (e.g., "2 PM", "9 AM")
+ * @returns {string} Formatted time string (e.g., "2PM", "9AM")
  */
 export function formatHour(hour: number): string {
-  if (hour === 0) return '12 AM';
-  if (hour === 12) return '12 PM';
-  if (hour < 12) return `${hour} AM`;
-  return `${hour - 12} PM`;
+  if (hour === 0) return '12AM';
+  if (hour === 12) return '12PM';
+  if (hour < 12) return `${hour}AM`;
+  return `${hour - 12}PM`;
 }
