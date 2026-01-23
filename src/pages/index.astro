@@ -32,9 +32,15 @@ import Layout from '../layouts/Layout.astro';
     </div>
 
     <nav class="nav-tabs">
-      <button class="nav-tab active" data-view="day">Day</button>
-      <button class="nav-tab" data-view="week">Week</button>
-      <button class="nav-tab" data-view="month">Month</button>
+      <div class="nav-tab-timeframe">
+        <button class="nav-tab active" data-view="day">Day</button>
+        <button class="nav-tab" data-view="week">Week</button>
+        <button class="nav-tab" data-view="month">Month</button>
+      </div>
+      <div class="nav-button-analytics">
+        <button class="nav-button" data-view="peak">Peak activity</button>
+        <button class="nav-button" data-view="average">Average kicks</button>
+      </div>
     </nav>
 
     <div id="historyView" class="history-view"></div>
@@ -184,6 +190,7 @@ import Layout from '../layouts/Layout.astro';
 
     .nav-tabs {
       display: flex;
+      flex-direction: column;
       gap: 0.5rem;
       margin-bottom: 1.5rem;
       background: var(--warm-white);
@@ -191,6 +198,18 @@ import Layout from '../layouts/Layout.astro';
       border-radius: 16px;
       box-shadow: var(--shadow-sm);
     }
+
+    .nav-tab-timeframe{
+      display: flex;
+      flex:1;
+      gap: 0.5rem;
+   }
+
+    .nav-button-analytics{
+      display: flex;
+      flex:1;
+      gap: 0.5rem;
+   }
 
     .nav-tab {
       flex: 1;
@@ -205,6 +224,38 @@ import Layout from '../layouts/Layout.astro';
       font-family: "rucksack", sans-serif;
       font-weight: 500;
       font-style: normal;
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--cyan-darker);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: "rucksack", sans-serif;
+      font-weight: 500;
+      font-style: normal;
+      border-radius: 0.75rem;
+      border: solid 1px var(--cyan-light);
+    }
+
+    .nav-button:hover {
+      background:var(--cyan-light);
+    }
+
+     .nav-button:active {
+      background:var(--cyan);
+      color: var(--charcoal);
+      box-shadow: 0 2px 8px rgba(6, 216, 252, 0.2);
+    }
+
+     .nav-button:focus {
+      background:var(--cyan);
+      color: var(--charcoal);
+      box-shadow: 0 2px 8px rgba(6, 216, 252, 0.2);
     }
 
     .nav-tab:hover {
