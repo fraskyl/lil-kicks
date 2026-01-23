@@ -246,25 +246,13 @@ import Layout from '../layouts/Layout.astro';
       background:var(--cyan-light);
     }
 
-     .nav-button:active {
-      background:var(--cyan);
-      color: var(--charcoal);
-      box-shadow: 0 2px 8px rgba(6, 216, 252, 0.2);
-    }
-
-     .nav-button:focus {
-      background:var(--cyan);
-      color: var(--charcoal);
-      box-shadow: 0 2px 8px rgba(6, 216, 252, 0.2);
-    }
-
     /* Peak Activity Styles */
 .peak-activity-header {
   margin-bottom: 1.5rem;
 }
 
 .peak-highlight {
-  background: linear-gradient(135deg, var(--cyan-light) 0%, var(--cyan) 100%);
+  background: linear-gradient(180deg, var(--cyan-light) 0%, var(--warm-white) 100%);
   border-radius: 16px;
   padding: 1.5rem;
   text-align: center;
@@ -273,21 +261,24 @@ import Layout from '../layouts/Layout.astro';
 }
 
 .peak-time {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Rucksack', sans-serif;
   font-size: 2.5rem;
   color: var(--charcoal);
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 0.5rem;
 }
 
 .peak-count {
   font-size: 1.1rem;
-  color: var(--charcoal);
+  color: var(--cyan-darker);
   font-weight: 500;
 }
 
 .hourly-breakdown {
+  display: grid;
   margin-top: 1.5rem;
+  gap: 1rem;
+
 }
 
 .peak-row {
@@ -382,7 +373,7 @@ import Layout from '../layouts/Layout.astro';
     }
 
     .summary-count {
-      font-family: 'DM Serif Display', serif;
+      
       font-size: 1.5rem;
       color: var(--cyan-darker);
     }
@@ -761,17 +752,31 @@ import Layout from '../layouts/Layout.astro';
   document.querySelectorAll('.nav-button').forEach(button => {
       button.addEventListener('click', function(this: HTMLElement) {
         const view = this.dataset.view;
-        if (view === 'peak') {
-          isPeakViewActive = !isPeakViewActive;
 
+        if (view === 'peak') {
+          // if already active, deactivate
           if (isPeakViewActive) {
-            showPeakActivity();
-            this.classList.add('active');
-          } else {
-            updateHistory();
+            isPeakViewActive = false;
             this.classList.remove('active');
+            updateHistory();
+          } else {
+            // Activate peak view
+            isPeakViewActive = true;
+
+            // Remove active class from ALL nav-buttons
+        document.querySelectorAll('.nav-button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+
+            // Add active class to this button
+            this.classList.add('active');
+            showPeakActivity();
           }
-        } 
+        } else if (view === 'average') {
+          // For now, just deactivate peak view if active
+          isPeakViewActive = false; 
+          console.log('Average kicks view not implemented yet.');
+        }         
       });    
     });
 
